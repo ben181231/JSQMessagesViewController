@@ -10,11 +10,14 @@ import UIKit
 import JSQMessagesViewController
 
 class ChatViewController: JSQMessagesViewController {
-    var messages = [JSQMessage]()
     let defaults = UserDefaults.standard
+
+    var messages = [JSQMessage]()
     var conversation: Conversation?
     var incomingBubble: JSQMessagesBubbleImage!
     var outgoingBubble: JSQMessagesBubbleImage!
+    var ramdomSendMessageTimer: Timer?
+
     fileprivate var displayName: String!
     
     override func viewDidLoad() {
@@ -54,9 +57,6 @@ class ChatViewController: JSQMessagesViewController {
             collectionView?.collectionViewLayout.outgoingAvatarViewSize = CGSize(width: kJSQMessagesCollectionViewAvatarSizeDefault, height:kJSQMessagesCollectionViewAvatarSizeDefault )
         }
         
-        // Show Button to simulate incoming messages
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage.jsq_defaultTypingIndicator(), style: .plain, target: self, action: #selector(receiveMessagePressed))
-        
         // This is a beta feature that mostly works but to make things more stable it is diabled.
         collectionView?.collectionViewLayout.springinessEnabled = false
         
@@ -64,6 +64,25 @@ class ChatViewController: JSQMessagesViewController {
 
         self.collectionView?.reloadData()
         self.collectionView?.layoutIfNeeded()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        if self.ramdomSendMessageTimer == nil {
+            self.ramdomSendMessageTimer = Timer.scheduledTimer(timeInterval: TimeInterval(5),
+                                                               target: self,
+                                                               selector: #selector(ramdomAction),
+                                                               userInfo: nil,
+                                                               repeats: true)
+        }
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+
+        self.ramdomSendMessageTimer?.invalidate()
+        self.ramdomSendMessageTimer = nil
     }
     
     func setupBackButton() {
@@ -73,24 +92,26 @@ class ChatViewController: JSQMessagesViewController {
     func backButtonTapped() {
         dismiss(animated: true, completion: nil)
     }
+
+    // this is simulating the action from other users
+    func ramdomAction() {
+        if arc4random() % 5 < 2 {
+            print("Random Action: sending the last message")
+            self.resendTheLastMessage()
+        } else {
+            print("Random Action: toggling typing indicator")
+            self.showTypingIndicator = !self.showTypingIndicator
+            self.scrollToBottom(animated: true)
+        }
+    }
     
-    func receiveMessagePressed(_ sender: UIBarButtonItem) {
+    func resendTheLastMessage() {
         /**
          *  DEMO ONLY
          *
          *  The following is simply to simulate received messages for the demo.
          *  Do not actually do this.
          */
-        
-        /**
-         *  Show the typing indicator to be shown
-         */
-        self.showTypingIndicator = !self.showTypingIndicator
-        
-        /**
-         *  Scroll to actually view the indicator
-         */
-        self.scrollToBottom(animated: true)
         
         /**
          *  Copy last sent message, this will be the new "received" message
